@@ -6,20 +6,13 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
+import { OfferResponseDto } from './dto/offer-response.dto';
 import { AuthUser } from '../common/decorators';
-import { toPublicProfile, sanitizeWish } from '../common/helpers';
-import type { Offer } from './entities/offer.entity';
 
-function sanitizeOffer(offer: Offer) {
-  const { user, item, ...offerData } = offer;
-  return {
-    ...offerData,
-    user: user ? toPublicProfile(user) : undefined,
-    item: item ? sanitizeWish(item) : undefined,
-  };
-}
+const opts = { excludeExtraneousValues: true } as const;
 
 @Controller('offers')
 export class OffersController {
@@ -28,18 +21,18 @@ export class OffersController {
   @Post()
   async create(@AuthUser() user: { id: number }, @Body() dto: CreateOfferDto) {
     const offer = await this.offersService.create(dto, user.id);
-    return sanitizeOffer(offer);
+    return plainToInstance(OfferResponseDto, offer, opts);
   }
 
   @Get()
   async findAll() {
     const offers = await this.offersService.findAll();
-    return offers.map(sanitizeOffer);
+    return plainToInstance(OfferResponseDto, offers, opts);
   }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const offer = await this.offersService.findOne(id);
-    return sanitizeOffer(offer);
+    return plainToInstance(OfferResponseDto, offer, opts);
   }
 }

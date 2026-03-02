@@ -8,25 +8,14 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { WishlistsService } from './wishlists.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
+import { WishlistResponseDto } from './dto/wishlist-response.dto';
 import { AuthUser } from '../common/decorators';
-import { toPublicProfile, sanitizeWish } from '../common/helpers';
-import type { Wishlist } from './entities/wishlist.entity';
 
-function sanitizeWishlist(wishlist: Wishlist) {
-  return {
-    id: wishlist.id,
-    createdAt: wishlist.createdAt,
-    updatedAt: wishlist.updatedAt,
-    name: wishlist.name,
-    description: wishlist.description,
-    image: wishlist.image,
-    owner: wishlist.owner ? toPublicProfile(wishlist.owner) : undefined,
-    items: wishlist.items?.map(sanitizeWish) ?? [],
-  };
-}
+const opts = { excludeExtraneousValues: true } as const;
 
 @Controller('wishlistlists')
 export class WishlistsController {
@@ -35,7 +24,7 @@ export class WishlistsController {
   @Get()
   async findAll() {
     const lists = await this.wishlistsService.findAll();
-    return lists.map(sanitizeWishlist);
+    return plainToInstance(WishlistResponseDto, lists, opts);
   }
 
   @Post()
@@ -44,13 +33,13 @@ export class WishlistsController {
     @Body() dto: CreateWishlistDto,
   ) {
     const wishlist = await this.wishlistsService.create(dto, user.id);
-    return sanitizeWishlist(wishlist);
+    return plainToInstance(WishlistResponseDto, wishlist, opts);
   }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const wishlist = await this.wishlistsService.findOne(id);
-    return sanitizeWishlist(wishlist);
+    return plainToInstance(WishlistResponseDto, wishlist, opts);
   }
 
   @Patch(':id')
@@ -60,7 +49,7 @@ export class WishlistsController {
     @Body() dto: UpdateWishlistDto,
   ) {
     const wishlist = await this.wishlistsService.updateOne(id, user.id, dto);
-    return sanitizeWishlist(wishlist);
+    return plainToInstance(WishlistResponseDto, wishlist, opts);
   }
 
   @Delete(':id')

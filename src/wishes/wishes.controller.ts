@@ -8,11 +8,14 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
+import { WishResponseDto } from './dto/wish-response.dto';
 import { AuthUser, Public } from '../common/decorators';
-import { sanitizeWish } from '../common/helpers';
+
+const opts = { excludeExtraneousValues: true } as const;
 
 @Controller('wishes')
 export class WishesController {
@@ -21,27 +24,27 @@ export class WishesController {
   @Post()
   async create(@AuthUser() user: { id: number }, @Body() dto: CreateWishDto) {
     const wish = await this.wishesService.create(dto, user.id);
-    return sanitizeWish(wish);
+    return plainToInstance(WishResponseDto, wish, opts);
   }
 
   @Get()
   async findAll() {
     const wishes = await this.wishesService.findLast();
-    return wishes.map(sanitizeWish);
+    return plainToInstance(WishResponseDto, wishes, opts);
   }
 
   @Public()
   @Get('last')
   async findLast() {
     const wishes = await this.wishesService.findLast();
-    return wishes.map(sanitizeWish);
+    return plainToInstance(WishResponseDto, wishes, opts);
   }
 
   @Public()
   @Get('top')
   async findTop() {
     const wishes = await this.wishesService.findTop();
-    return wishes.map(sanitizeWish);
+    return plainToInstance(WishResponseDto, wishes, opts);
   }
 
   @Get(':id')
@@ -50,18 +53,17 @@ export class WishesController {
     @AuthUser() user: { id: number },
   ) {
     const wish = await this.wishesService.findOne(id);
-    const result = sanitizeWish(wish);
+    const result = plainToInstance(WishResponseDto, wish, opts);
     if (result.offers) {
-      result.offers = result.offers.map((offer) => {
+      for (const offer of result.offers) {
         if (
           offer.hidden &&
           user.id !== result.owner?.id &&
           user.id !== offer.user?.id
         ) {
-          return { ...offer, amount: 0 };
+          offer.amount = 0;
         }
-        return offer;
-      });
+      }
     }
     return result;
   }
@@ -73,7 +75,7 @@ export class WishesController {
     @Body() dto: UpdateWishDto,
   ) {
     const wish = await this.wishesService.updateOne(id, user.id, dto);
-    return sanitizeWish(wish);
+    return plainToInstance(WishResponseDto, wish, opts);
   }
 
   @Delete(':id')
@@ -90,6 +92,6 @@ export class WishesController {
     @AuthUser() user: { id: number },
   ) {
     const wish = await this.wishesService.copy(id, user.id);
-    return sanitizeWish(wish);
+    return plainToInstance(WishResponseDto, wish, opts);
   }
 }

@@ -7,15 +7,16 @@ import {
   Post,
   NotFoundException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FindUsersDto } from './dto/find-users.dto';
+import { UserProfileResponseDto } from './dto/user-profile-response.dto';
+import { UserPublicProfileResponseDto } from './dto/user-public-profile-response.dto';
+import { WishResponseDto } from '../wishes/dto/wish-response.dto';
 import { AuthUser } from '../common/decorators';
-import {
-  toUserProfile,
-  toPublicProfile,
-  sanitizeWish,
-} from '../common/helpers';
+
+const publicOpts = { excludeExtraneousValues: true } as const;
 
 @Controller('users')
 export class UsersController {
@@ -24,37 +25,37 @@ export class UsersController {
   @Get('me')
   async getMe(@AuthUser() user: { id: number }) {
     const me = await this.usersService.findById(user.id);
-    return toUserProfile(me);
+    return plainToInstance(UserProfileResponseDto, me, publicOpts);
   }
 
   @Patch('me')
   async updateMe(@AuthUser() user: { id: number }, @Body() dto: UpdateUserDto) {
     const updated = await this.usersService.updateOne(user.id, dto);
-    return toUserProfile(updated);
+    return plainToInstance(UserProfileResponseDto, updated, publicOpts);
   }
 
   @Get('me/wishes')
   async getMyWishes(@AuthUser() user: { id: number }) {
     const wishes = await this.usersService.findWishes(user.id);
-    return wishes.map(sanitizeWish);
+    return plainToInstance(WishResponseDto, wishes, publicOpts);
   }
 
   @Post('find')
   async findUsers(@Body() dto: FindUsersDto) {
     const users = await this.usersService.findMany(dto.query);
-    return users.map(toUserProfile);
+    return plainToInstance(UserPublicProfileResponseDto, users, publicOpts);
   }
 
   @Get(':username')
   async getUser(@Param('username') username: string) {
     const user = await this.usersService.findByUsername(username);
     if (!user) throw new NotFoundException('Пользователь не найден');
-    return toPublicProfile(user);
+    return plainToInstance(UserPublicProfileResponseDto, user, publicOpts);
   }
 
   @Get(':username/wishes')
   async getUserWishes(@Param('username') username: string) {
     const wishes = await this.usersService.findWishesByUsername(username);
-    return wishes.map(sanitizeWish);
+    return plainToInstance(WishResponseDto, wishes, publicOpts);
   }
 }

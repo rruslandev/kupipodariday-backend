@@ -42,7 +42,7 @@ export class Wish extends BaseEntity {
   @ManyToOne(() => User, (user) => user.wishes)
   owner: User;
 
-  @OneToMany(() => Offer, (offer) => offer.item)
+  @OneToMany(() => Offer, (offer) => offer.item, { cascade: true })
   offers: Offer[];
 
   @ManyToMany(() => Wishlist, (wishlist) => wishlist.items)
