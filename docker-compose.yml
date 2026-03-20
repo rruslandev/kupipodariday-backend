@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:4000}
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+    ports:
+      - "4000:3001"
+    env_file:
+      - .env
+    depends_on:
+      - database
+    restart: unless-stopped
+
+  database:
+    container_name: database
+    image: postgres:13-alpine
+    env_file:
+      - .env
+    volumes:
+      - pg_data:${PGDATA:-/data/postgres}
+    restart: unless-stopped
+
+volumes:
+  pg_data:
